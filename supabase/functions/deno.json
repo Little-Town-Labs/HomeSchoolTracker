@@ -1,0 +1,19 @@
+{
+  "tasks": {
+    "start": "deno run --allow-net --allow-env",
+    "deploy": "supabase functions deploy"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "strict": true,
+    "noImplicitAny": true
+  },
+  "fmt": {
+    "options": {
+      "useTabs": false,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "singleQuote": true
+    }
+  }
+}
