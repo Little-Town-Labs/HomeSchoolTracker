@@ -1,3 +1,5 @@
+![User Flow Diagram](assets/user_flow_diagram.png)
+
 graph TD
     %% Entry Points
     A[Landing Page] --> B{User Authentication}
