@@ -1,31 +1,44 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-  Outlet, // Import Outlet
+  Outlet,
 } from "react-router-dom";
 import { getCurrentUser } from "./lib/auth";
 import { Notification } from "./components/Notification";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { LandingPage } from "./components/LandingPage";
-import { AuthForm } from "./components/AuthForm";
-import { Dashboard } from "./components/Dashboard";
-import { EmailVerification } from "./components/EmailVerification";
-import { ForgotPassword } from "./components/ForgotPassword";
-import { ResetPassword } from "./components/ResetPassword";
-import { SessionExpired } from "./components/SessionExpired";
-import { InvitationAccept } from "./components/InvitationAccept";
 import { supabase } from "./lib/supabase";
 import type { User } from "./types";
-import { useUserSubscription } from "./hooks/useUserSubscription"; // Import the hook
-import { AdminLayout } from "./components/admin/AdminLayout";
-import { AdminSubscriptionDashboard } from "./components/admin/AdminSubscriptionDashboard";
-import { UserManagement } from "./components/admin/UserManagement";
-import { Analytics } from "./components/admin/Analytics";
-import { SubscriptionPlanManagement } from "./components/admin/SubscriptionPlanManagement";
-import { SubscriptionPlans } from "./components/subscription/SubscriptionPlans";
+import { useUserSubscription } from "./hooks/useUserSubscription";
+
+// Lazy load components for better code splitting
+const LandingPage = lazy(() => import("./components/LandingPage").then(m => ({ default: m.LandingPage })));
+const AuthForm = lazy(() => import("./components/AuthForm").then(m => ({ default: m.AuthForm })));
+const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
+const EmailVerification = lazy(() => import("./components/EmailVerification").then(m => ({ default: m.EmailVerification })));
+const ForgotPassword = lazy(() => import("./components/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import("./components/ResetPassword").then(m => ({ default: m.ResetPassword })));
+const SessionExpired = lazy(() => import("./components/SessionExpired").then(m => ({ default: m.SessionExpired })));
+const InvitationAccept = lazy(() => import("./components/InvitationAccept").then(m => ({ default: m.InvitationAccept })));
+
+// Admin components (loaded only when admin routes are accessed)
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout").then(m => ({ default: m.AdminLayout })));
+const AdminSubscriptionDashboard = lazy(() => import("./components/admin/AdminSubscriptionDashboard").then(m => ({ default: m.AdminSubscriptionDashboard })));
+const UserManagement = lazy(() => import("./components/admin/UserManagement").then(m => ({ default: m.UserManagement })));
+const Analytics = lazy(() => import("./components/admin/Analytics").then(m => ({ default: m.Analytics })));
+const SubscriptionPlanManagement = lazy(() => import("./components/admin/SubscriptionPlanManagement").then(m => ({ default: m.SubscriptionPlanManagement })));
+
+// Subscription components
+const SubscriptionPlans = lazy(() => import("./components/subscription/SubscriptionPlans").then(m => ({ default: m.SubscriptionPlans })));
+
+// Loading component for Suspense
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 // Session timeout in milliseconds (30 minutes)
 const SESSION_TIMEOUT = 30 * 60 * 1000;
@@ -193,73 +206,75 @@ function App() {
             onClose={() => setNotification(null)}
           />
         )}
-        <Routes>
-          <Route
-            path="/"
-            element={user ? <Dashboard user={user} /> : <LandingPage />}
-          />
-          <Route path="/auth/callback" element={<EmailVerification />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/session-expired" element={<SessionExpired />} />
-          <Route
-            path="/invite/:token"
-            element={<InvitationAccept user={user} />}
-          />
-           {/* Add a route for subscription plans */}
-           <Route path="/subscribe" element={<ProtectedRoute user={user}><SubscriptionPlans /></ProtectedRoute>} />
-          <Route
-            path="/signin"
-            element={
-              user ? (
-                <Navigate to="/" replace />
-              ) : (
-                <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-                  <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                      Sign in to your account
-                    </h2>
-                  </div>
-                  <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                    <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                      <AuthForm mode="signin" onSuccess={handleAuthSuccess} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route
+              path="/"
+              element={user ? <Dashboard user={user} /> : <LandingPage />}
+            />
+            <Route path="/auth/callback" element={<EmailVerification />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/session-expired" element={<SessionExpired />} />
+            <Route
+              path="/invite/:token"
+              element={<InvitationAccept user={user} />}
+            />
+             {/* Add a route for subscription plans */}
+             <Route path="/subscribe" element={<ProtectedRoute user={user}><SubscriptionPlans /></ProtectedRoute>} />
+            <Route
+              path="/signin"
+              element={
+                user ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+                    <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                      <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Sign in to your account
+                      </h2>
+                    </div>
+                    <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                      <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                        <AuthForm mode="signin" onSuccess={handleAuthSuccess} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              user ? (
-                <Navigate to="/" replace />
-              ) : (
-                <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-                  <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                      Create your account
-                    </h2>
-                  </div>
-                  <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                    <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                      <AuthForm mode="signup" onSuccess={handleAuthSuccess} />
+                )
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                user ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+                    <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                      <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Create your account
+                      </h2>
+                    </div>
+                    <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                      <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                        <AuthForm mode="signup" onSuccess={handleAuthSuccess} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            }
-          />
-           {/* Admin Routes */}
-           {/* Use AdminProtectedRoute to wrap AdminLayout and its nested routes */}
-           <Route path="/admin" element={<AdminProtectedRoute user={user}><AdminLayout><Outlet /></AdminLayout></AdminProtectedRoute>}>
-             <Route index element={<AdminSubscriptionDashboard />} />
-             <Route path="subscriptions" element={<AdminSubscriptionDashboard />} />
-             <Route path="users" element={<UserManagement />} />
-             <Route path="analytics" element={<Analytics />} />
-             <Route path="plans" element={<SubscriptionPlanManagement />} />
-           </Route>
-        </Routes>
+                )
+              }
+            />
+             {/* Admin Routes */}
+             {/* Use AdminProtectedRoute to wrap AdminLayout and its nested routes */}
+             <Route path="/admin" element={<AdminProtectedRoute user={user}><AdminLayout><Outlet /></AdminLayout></AdminProtectedRoute>}>
+               <Route index element={<AdminSubscriptionDashboard />} />
+               <Route path="subscriptions" element={<AdminSubscriptionDashboard />} />
+               <Route path="users" element={<UserManagement />} />
+               <Route path="analytics" element={<Analytics />} />
+               <Route path="plans" element={<SubscriptionPlanManagement />} />
+             </Route>
+          </Routes>
+        </Suspense>
       </Router>
     </ErrorBoundary>
   );
