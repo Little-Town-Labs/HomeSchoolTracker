@@ -5,6 +5,7 @@
 [build.environment]
   NODE_VERSION = "20"
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_RESEND_API_KEY"
+  SECRETS_SCAN_OMIT_PATHS = "tests/**/*,testing/**/*,test-results/**/*,playwright-report/**/*"
 
 # Security headers
 [[headers]]
