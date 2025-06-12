@@ -47,7 +47,7 @@ serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Expect POST request with optional body (if plan selection is needed)
+  // Expect POST request with plan ID in body
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -56,13 +56,24 @@ serve(async (req: Request) => {
   }
 
   try {
-    // 1. Create Supabase Admin Client (for auth check and DB operations)
+    // 1. Parse request body to get plan ID
+    const requestData = await req.json()
+    const { planId } = requestData
+
+    if (!planId) {
+      return new Response(JSON.stringify({ error: 'Missing required parameter: planId' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      })
+    }
+
+    // 2. Create Supabase Admin Client (for auth check and DB operations)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 2. Verify User Authentication from JWT
+    // 3. Verify User Authentication from JWT
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -78,28 +89,27 @@ serve(async (req: Request) => {
     }
     const userId = user.id;
 
-    // 3. Get PayPal Credentials, Plan ID, and Return URLs from Env Vars
+    // 4. Get PayPal Credentials and Return URLs from Env Vars
     const paypalClientId = Deno.env.get('PAYPAL_CLIENT_ID')
     const paypalClientSecret = Deno.env.get('PAYPAL_CLIENT_SECRET')
     const paypalApiUrl = Deno.env.get('PAYPAL_API_URL') || 'https://api-m.sandbox.paypal.com'
-    const paypalPlanId = Deno.env.get('PAYPAL_PLAN_ID') // Assuming one primary plan for now
     const frontendReturnUrl = Deno.env.get('FRONTEND_PAYPAL_RETURN_URL') // e.g., https://yourapp.com/subscribe/success
     const frontendCancelUrl = Deno.env.get('FRONTEND_PAYPAL_CANCEL_URL') // e.g., https://yourapp.com/subscribe/cancel
 
-    if (!paypalClientId || !paypalClientSecret || !paypalPlanId || !frontendReturnUrl || !frontendCancelUrl) {
-      console.error('Missing required PayPal/Frontend environment variables (CLIENT_ID, SECRET, PLAN_ID, RETURN_URL, CANCEL_URL)')
-      throw new Error('PayPal API credentials, Plan ID, or Frontend URLs not configured.')
+    if (!paypalClientId || !paypalClientSecret || !frontendReturnUrl || !frontendCancelUrl) {
+      console.error('Missing required PayPal/Frontend environment variables (CLIENT_ID, SECRET, RETURN_URL, CANCEL_URL)')
+      throw new Error('PayPal API credentials or Frontend URLs not configured.')
     }
 
-    // 4. Get Internal Plan UUID
-    const internalPlanUuid = await getInternalPlanUuid(supabaseAdmin, paypalPlanId);
+    // 5. Get Internal Plan UUID using the provided plan ID
+    const internalPlanUuid = await getInternalPlanUuid(supabaseAdmin, planId);
 
-    // 5. Get PayPal Access Token
+    // 6. Get PayPal Access Token
     const accessToken = await getPayPalAccessToken(paypalClientId, paypalClientSecret, paypalApiUrl)
 
-    // 6. Create PayPal Subscription via API
+    // 7. Create PayPal Subscription via API
     const createSubscriptionPayload = {
-      plan_id: paypalPlanId,
+      plan_id: planId, // Use the plan ID from the request
       // start_time: // Optional: Can specify a future start time
       // quantity: '1', // Default is 1
       custom_id: userId, // Link the subscription to our user ID
@@ -142,7 +152,7 @@ serve(async (req: Request) => {
         throw new Error('Failed to get subscription ID or approval link from PayPal.')
     }
 
-    // 7. Upsert initial record in user_subscriptions
+    // 8. Upsert initial record in user_subscriptions
     // Status should reflect that it needs user approval via the link
     const upsertData = {
       user_id: userId,
@@ -164,7 +174,7 @@ serve(async (req: Request) => {
       // But ensure this error is monitored.
     }
 
-    // 8. Return the approval link to the frontend
+    // 9. Return the approval link to the frontend
     return new Response(JSON.stringify({ approvalUrl: approvalLink }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200, // OK, even if DB upsert had logged error

@@ -32,6 +32,8 @@ const SubscriptionPlanManagement = lazy(() => import("./components/admin/Subscri
 
 // Subscription components
 const SubscriptionPlans = lazy(() => import("./components/subscription/SubscriptionPlans").then(m => ({ default: m.SubscriptionPlans })));
+const SubscriptionSuccess = lazy(() => import("./components/subscription/SubscriptionSuccess").then(m => ({ default: m.SubscriptionSuccess })));
+const SubscriptionCancel = lazy(() => import("./components/subscription/SubscriptionCancel").then(m => ({ default: m.SubscriptionCancel })));
 
 // Loading component for Suspense
 const PageLoader = () => (
@@ -220,8 +222,10 @@ function App() {
               path="/invite/:token"
               element={<InvitationAccept user={user} />}
             />
-             {/* Add a route for subscription plans */}
+             {/* Add routes for subscription */}
              <Route path="/subscribe" element={<ProtectedRoute user={user}><SubscriptionPlans /></ProtectedRoute>} />
+             <Route path="/subscribe/success" element={<ProtectedRoute user={user}><SubscriptionSuccess /></ProtectedRoute>} />
+             <Route path="/subscribe/cancel" element={<ProtectedRoute user={user}><SubscriptionCancel /></ProtectedRoute>} />
             <Route
               path="/signin"
               element={

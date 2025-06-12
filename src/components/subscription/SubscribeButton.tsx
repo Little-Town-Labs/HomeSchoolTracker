@@ -83,13 +83,47 @@ function PayPalButtonWrapper({
 }) {
   const [{ isResolved, isRejected, isPending }] = usePayPalScriptReducer();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const createSubscription = (data: unknown, actions: any): Promise<string> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+  const createSubscription = async (_data: unknown, _actions: any): Promise<string> => {
     setIsProcessing(true);
     setError(null);
-    return actions.subscription.create({
-      plan_id: paypalPlanId,
-    });
+    
+    try {
+      // Call our backend Edge Function to create the subscription with proper return URLs
+      const { data: subscriptionData, error: createError } = await supabase.functions.invoke(
+        'create-paypal-subscription',
+        {
+          body: { planId: paypalPlanId }
+        }
+      );
+
+      if (createError) {
+        throw new Error(`Failed to create subscription: ${createError.message}`);
+      }
+
+      if (!subscriptionData?.approvalUrl) {
+        throw new Error('No approval URL received from subscription creation');
+      }
+
+      // Extract subscription ID from the approval URL
+      const url = new URL(subscriptionData.approvalUrl);
+      const subscriptionId = url.searchParams.get('subscription_id');
+      
+      if (!subscriptionId) {
+        throw new Error('Could not extract subscription ID from approval URL');
+      }
+
+      console.log('Subscription created successfully:', subscriptionId);
+      return subscriptionId;
+      
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create subscription.';
+      console.error('Error creating subscription:', err);
+      setError(`Subscription creation failed: ${errorMessage}`);
+      setIsProcessing(false);
+      if (onError) onError(err);
+      throw err;
+    }
   };
 
   const onApprove = async (data: unknown) => {
