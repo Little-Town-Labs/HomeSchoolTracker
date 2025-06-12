@@ -59,3 +59,10 @@ tasks/
 /.tasks/
 .roomodes/
 .ruru/
+
+
+# Documents
+memory-bank/**/*
+
+#Scripts
+scripts/**/*

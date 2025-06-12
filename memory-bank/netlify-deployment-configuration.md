@@ -14,8 +14,8 @@ This document records the Netlify deployment configuration completed for HomeSch
 ### 1. PayPal URL Configuration (CRITICAL FIX)
 **Problem**: PayPal URLs were pointing to localhost instead of production domain
 **Solution**: Updated environment variables via Netlify CLI
-- `FRONTEND_PAYPAL_CANCEL_URL`: `http://localhost:5173/subscribe/cancel` → `https://homeschooltracker.netlify.app/subscribe/cancel`
-- `FRONTEND_PAYPAL_RETURN_URL`: `http://localhost:5173/subscribe/success` → `https://homeschooltracker.netlify.app/subscribe/success`
+- `FRONTEND_PAYPAL_CANCEL_URL`: `http://localhost:5173/subscribe/cancel` → `https:///subscribe/cancel`
+- `FRONTEND_PAYPAL_RETURN_URL`: `http://localhost:5173/subscribe/success` → `https:///subscribe/success`
 
 ### 2. Security - Secrets Configuration
 **Problem**: Sensitive API keys were not marked as secrets

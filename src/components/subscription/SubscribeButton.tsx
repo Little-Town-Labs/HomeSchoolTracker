@@ -8,14 +8,8 @@ import {
 import { supabase } from '@/lib/supabase';
 import { AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 
-// Environment variable access with debugging
+// Environment variable access
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
-
-// Debug environment variable access
-console.log('Environment variables debug:', {
-  VITE_PAYPAL_CLIENT_ID: PAYPAL_CLIENT_ID,
-  allEnvVars: import.meta.env
-});
 
 interface SubscribeButtonProps {
   paypalPlanId: string;
