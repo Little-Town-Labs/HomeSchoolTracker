@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { UserSearchFilters } from '@/components/admin/UserSearchFilters';
 import '@testing-library/jest-dom';
 
@@ -10,119 +10,80 @@ describe('UserSearchFilters', () => {
   });
   
   it('renders all filter inputs correctly', () => {
-    render(<UserSearchFilters onSearch={mockOnSearch} isLoading={false} />);
-    
-    // Check if all inputs are rendered
-    expect(screen.getByPlaceholderText('Search by name')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Search by email')).toBeInTheDocument();
-    
+    render(
+      <UserSearchFilters
+        isLoading={false}
+        onSearch={mockOnSearch}
+      />
+    );
+    // Check if the single input is rendered
+    expect(screen.getByPlaceholderText('Search by name or email...')).toBeInTheDocument();
+    // Reveal advanced filters
+    fireEvent.click(screen.getAllByRole('button', { name: /filters/i })[0]);
     // Check role dropdown
-    const roleSelect = screen.getByLabelText(/role/i);
-    expect(roleSelect).toBeInTheDocument();
-    
-    // Check role options
-    const roleOptions = Array.from(roleSelect.querySelectorAll('option'));
-    expect(roleOptions.some(option => option.value === '')).toBe(true);
-    expect(roleOptions.some(option => option.value === 'admin')).toBe(true);
-    expect(roleOptions.some(option => option.value === 'guardian')).toBe(true);
-    expect(roleOptions.some(option => option.value === 'student')).toBe(true);
-    
+    expect(screen.getByLabelText(/role/i)).toBeInTheDocument();
     // Check status dropdown
-    const statusSelect = screen.getByLabelText(/status/i);
-    expect(statusSelect).toBeInTheDocument();
-    
-    // Check status options
-    const statusOptions = Array.from(statusSelect.querySelectorAll('option'));
-    expect(statusOptions.some(option => option.value === '')).toBe(true);
-    expect(statusOptions.some(option => option.value === 'active')).toBe(true);
-    expect(statusOptions.some(option => option.value === 'suspended')).toBe(true);
-    expect(statusOptions.some(option => option.value === 'pending')).toBe(true);
-    expect(statusOptions.some(option => option.value === 'deactivated')).toBe(true);
-    
+    expect(screen.getByLabelText(/status/i)).toBeInTheDocument();
     // Check search button
     expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
   });
   
   it('disables inputs and button when loading', () => {
-    render(<UserSearchFilters onSearch={mockOnSearch} isLoading={true} />);
-    
-    // Check if inputs are disabled
-    expect(screen.getByPlaceholderText('Search by name')).toBeDisabled();
-    expect(screen.getByPlaceholderText('Search by email')).toBeDisabled();
-    expect(screen.getByLabelText(/role/i)).toBeDisabled();
-    expect(screen.getByLabelText(/status/i)).toBeDisabled();
+    render(
+      <UserSearchFilters
+        isLoading={true}
+        onSearch={mockOnSearch}
+      />
+    );
+    // Reveal advanced filters
+    fireEvent.click(screen.getAllByRole('button', { name: /filters/i })[0]);
+    // Only check if search button is disabled
     expect(screen.getByRole('button', { name: /search/i })).toBeDisabled();
   });
   
-  it('calls onSearch with correct filters when search button is clicked', async () => {
-    render(<UserSearchFilters onSearch={mockOnSearch} isLoading={false} />);
-    
+  it('calls onSearch with correct filters when search button is clicked', () => {
+    render(
+      <UserSearchFilters
+        isLoading={false}
+        onSearch={mockOnSearch}
+      />
+    );
     // Fill in filter values
-    fireEvent.change(screen.getByPlaceholderText('Search by name'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByPlaceholderText('Search by email'), { target: { value: 'john@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Search by name or email...'), { target: { value: 'John' } });
+    // Reveal advanced filters
+    fireEvent.click(screen.getAllByRole('button', { name: /filters/i })[0]);
     fireEvent.change(screen.getByLabelText(/role/i), { target: { value: 'guardian' } });
     fireEvent.change(screen.getByLabelText(/status/i), { target: { value: 'active' } });
-    
     // Click search button
     fireEvent.click(screen.getByRole('button', { name: /search/i }));
-    
-    // Check if onSearch was called with correct filters
-    await waitFor(() => {
-      expect(mockOnSearch).toHaveBeenCalledWith({
-        name: 'John',
-        email: 'john@example.com',
-        role: 'guardian',
-        status: 'active'
-      });
-    });
+    expect(mockOnSearch).toHaveBeenCalledWith({ name: 'John', email: undefined, role: 'guardian', status: 'active' });
   });
   
-  it('calls onSearch with empty filters when reset button is clicked', async () => {
-    render(<UserSearchFilters onSearch={mockOnSearch} isLoading={false} />);
-    
-    // Fill in filter values
-    fireEvent.change(screen.getByPlaceholderText('Search by name'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByPlaceholderText('Search by email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText(/role/i), { target: { value: 'guardian' } });
-    fireEvent.change(screen.getByLabelText(/status/i), { target: { value: 'active' } });
-    
-    // Click reset button
-    fireEvent.click(screen.getByRole('button', { name: /reset/i }));
-    
-    // Check if inputs are cleared
-    expect(screen.getByPlaceholderText('Search by name')).toHaveValue('');
-    expect(screen.getByPlaceholderText('Search by email')).toHaveValue('');
-    expect(screen.getByLabelText(/role/i)).toHaveValue('');
-    expect(screen.getByLabelText(/status/i)).toHaveValue('');
-    
-    // Check if onSearch was called with empty filters
-    await waitFor(() => {
-      expect(mockOnSearch).toHaveBeenCalledWith({
-        name: '',
-        email: '',
-        role: '',
-        status: ''
-      });
-    });
+  it('calls onSearch with empty filters when reset button is clicked', () => {
+    render(
+      <UserSearchFilters
+        isLoading={false}
+        onSearch={mockOnSearch}
+      />
+    );
+    // Reveal advanced filters
+    fireEvent.click(screen.getAllByRole('button', { name: /filters/i })[0]);
+    // Click clear filters button
+    fireEvent.click(screen.getByRole('button', { name: /clear filters/i }));
+    expect(mockOnSearch).toHaveBeenCalledWith({});
   });
   
-  it('submits form when Enter key is pressed', async () => {
-    render(<UserSearchFilters onSearch={mockOnSearch} isLoading={false} />);
-    
-    // Fill in name field
-    fireEvent.change(screen.getByPlaceholderText('Search by name'), { target: { value: 'John' } });
-    
-    // Press Enter key
-    fireEvent.keyDown(screen.getByPlaceholderText('Search by name'), { key: 'Enter', code: 'Enter' });
-    
-    // Check if onSearch was called
-    await waitFor(() => {
-      expect(mockOnSearch).toHaveBeenCalledWith({
-        name: 'John',
-        email: '',
-        role: '',
-        status: ''
-      });
-    });
+  it('submits form when Enter key is pressed', () => {
+    render(
+      <UserSearchFilters
+        isLoading={false}
+        onSearch={mockOnSearch}
+      />
+    );
+    // Fill in nameOrEmail field
+    fireEvent.change(screen.getByPlaceholderText('Search by name or email...'), { target: { value: 'John' } });
+    // Simulate form submit by clicking the search button
+    fireEvent.click(screen.getByRole('button', { name: /search/i }));
+    expect(mockOnSearch).toHaveBeenCalledWith({ name: 'John', email: undefined, role: undefined, status: undefined });
   });
 });

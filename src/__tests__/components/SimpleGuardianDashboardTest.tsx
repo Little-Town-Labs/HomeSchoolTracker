@@ -2,6 +2,14 @@ import { render } from "@testing-library/react";
 import { GuardianDashboard } from "../../components/GuardianDashboard";
 import type { User } from "../../types";
 
+// Add this at the top of the file before imports that use import.meta.env
+beforeAll(() => {
+  Object.defineProperty(global, 'import.meta', {
+    value: { env: { VITE_OWNER_EMAIL: 'test-owner@example.com' } },
+    writable: true,
+  });
+});
+
 // Mock the TranscriptPDF component to avoid TypeScript errors
 jest.mock("../../components/TranscriptPDF", () => ({
   TranscriptPDF: () => null,
@@ -92,6 +100,7 @@ describe("GuardianDashboard - Minimal Test", () => {
       role: "guardian",
       name: "Guardian Name",
       created_at: "2025-01-01",
+      status: "active",
     },
   };
 

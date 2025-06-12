@@ -180,7 +180,7 @@ export function UserProfileView({
                   </div>
                 ) : (
                   <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" role="status"></div>
                   </div>
                 )}
               </div>
@@ -208,7 +208,7 @@ export function UserProfileView({
 
                 {isLoading ? (
                   <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" role="status"></div>
                   </div>
                 ) : activities.length > 0 ? (
                   <div className="space-y-4">

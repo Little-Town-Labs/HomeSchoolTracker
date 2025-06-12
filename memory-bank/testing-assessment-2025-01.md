@@ -73,4 +73,20 @@ HomeSchoolTracker has a mature testing approach with excellent E2E coverage but 
 - **Month 3**: Implement performance testing and monitoring
 
 ## Decision Context
-This assessment was conducted to understand the current testing maturity and identify improvement opportunities. The findings show that while the project has excellent testing infrastructure and documentation, there's a significant gap in unit test coverage that should be addressed to ensure long-term maintainability and faster development cycles. 
+This assessment was conducted to understand the current testing maturity and identify improvement opportunities. The findings show that while the project has excellent testing infrastructure and documentation, there's a significant gap in unit test coverage that should be addressed to ensure long-term maintainability and faster development cycles.
+
+# Unit Test Status Update — June 2025
+
+**Summary:**
+- All unit tests in `src/__tests__/components/` now pass except for one test in `UserDialogs.test.tsx`:
+  - Failing: `UserRoleDialog › handles errors during update` (error message not found after simulating an error)
+- All other tests are up to date, pass, and follow best practices.
+- Major improvements:
+  - Accessibility and async handling fixes
+  - Test selectors and error handling updated
+  - Environment variable usage made Jest-compatible
+  - TypeScript errors resolved
+
+**Next Steps:**
+- Debug and fix the remaining error handling test in `UserDialogs.test.tsx` if needed.
+- Continue expanding coverage and maintaining best practices. 

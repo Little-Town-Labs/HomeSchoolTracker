@@ -34,7 +34,7 @@ export function GuardianHeader({
   onLogout,
 }: GuardianHeaderProps) {
   const isAdminOrOwner = useMemo(() =>
-    user.profile.role === 'admin' || user.email === import.meta.env.VITE_OWNER_EMAIL,
+    user.profile.role === 'admin' || user.email === process.env.VITE_OWNER_EMAIL,
     [user]
   );
 

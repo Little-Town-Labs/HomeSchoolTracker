@@ -1,7 +1,7 @@
 # Testing Structure Assessment
 
 **Project:** HomeSchoolTracker  
-**Assessment Date:** January 2025  
+**Assessment Date:** June 2025  
 **Scope:** Unit Testing (Jest) & E2E Testing (Playwright)
 
 ---
