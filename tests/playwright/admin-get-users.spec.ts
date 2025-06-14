@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page, APIRequestContext } from '@playwright/test';
 
 test.describe('admin-get-users Edge Function', () => {
   // Admin credentials for testing
@@ -10,7 +10,7 @@ test.describe('admin-get-users Edge Function', () => {
   const regularUserPassword = 'userPassword123';
   
   // Helper function to get auth token
-  async function getAuthToken(page, email, password) {
+  async function getAuthToken(page: Page, email: string, password: string) {
     // Navigate to login page
     await page.goto('/login');
     
@@ -26,10 +26,11 @@ test.describe('admin-get-users Edge Function', () => {
     
     // Get auth token from localStorage
     const token = await page.evaluate(() => localStorage.getItem('supabase.auth.token'));
+    if (!token) throw new Error('No auth token found in localStorage');
     return JSON.parse(token).currentSession.access_token;
   }
   
-  test('should return users with pagination when called by admin', async ({ page, request }) => {
+  test('should return users with pagination when called by admin', async ({ page, request }: { page: Page, request: APIRequestContext }) => {
     // Get admin auth token
     const token = await getAuthToken(page, adminEmail, adminPassword);
     
@@ -67,7 +68,7 @@ test.describe('admin-get-users Edge Function', () => {
     }
   });
   
-  test('should filter users by email', async ({ page, request }) => {
+  test('should filter users by email', async ({ page, request }: { page: Page, request: APIRequestContext }) => {
     // Get admin auth token
     const token = await getAuthToken(page, adminEmail, adminPassword);
     
@@ -93,7 +94,7 @@ test.describe('admin-get-users Edge Function', () => {
     }
   });
   
-  test('should filter users by role', async ({ page, request }) => {
+  test('should filter users by role', async ({ page, request }: { page: Page, request: APIRequestContext }) => {
     // Get admin auth token
     const token = await getAuthToken(page, adminEmail, adminPassword);
     
@@ -119,7 +120,7 @@ test.describe('admin-get-users Edge Function', () => {
     }
   });
   
-  test('should filter users by status', async ({ page, request }) => {
+  test('should filter users by status', async ({ page, request }: { page: Page, request: APIRequestContext }) => {
     // Get admin auth token
     const token = await getAuthToken(page, adminEmail, adminPassword);
     
@@ -145,7 +146,7 @@ test.describe('admin-get-users Edge Function', () => {
     }
   });
   
-  test('should sort users by specified column', async ({ page, request }) => {
+  test('should sort users by specified column', async ({ page, request }: { page: Page, request: APIRequestContext }) => {
     // Get admin auth token
     const token = await getAuthToken(page, adminEmail, adminPassword);
     
@@ -171,7 +172,7 @@ test.describe('admin-get-users Edge Function', () => {
     }
   });
   
-  test('should paginate results correctly', async ({ page, request }) => {
+  test('should paginate results correctly', async ({ page, request }: { page: Page, request: APIRequestContext }) => {
     // Get admin auth token
     const token = await getAuthToken(page, adminEmail, adminPassword);
     
@@ -197,7 +198,7 @@ test.describe('admin-get-users Edge Function', () => {
     expect(data.users.length).toBeLessThanOrEqual(2);
   });
   
-  test('should return 401 for unauthenticated requests', async ({ request }) => {
+  test('should return 401 for unauthenticated requests', async ({ request }: { request: APIRequestContext }) => {
     // Call the edge function without auth token
     const response = await request.get(`${process.env.SUPABASE_URL}/functions/v1/admin-get-users`, {
       headers: {
@@ -216,7 +217,7 @@ test.describe('admin-get-users Edge Function', () => {
     expect(data.error).toBe('Unauthorized');
   });
   
-  test('should return 403 for non-admin users', async ({ page, request }) => {
+  test('should return 403 for non-admin users', async ({ page, request }: { page: Page, request: APIRequestContext }) => {
     // Get regular user auth token
     const token = await getAuthToken(page, regularUserEmail, regularUserPassword);
     

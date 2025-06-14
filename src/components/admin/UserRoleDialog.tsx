@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
-import type { ComponentProps } from '@/types';
-import { X } from 'lucide-react';
+import React, { useState } from "react";
+import type { ComponentProps } from "@/types";
+import { X } from "lucide-react";
 
 interface UserRoleDialogProps extends ComponentProps {
   isOpen: boolean;
   userId: string;
   currentRole: string;
   onClose: () => void;
-  onUpdateRole: (userId: string, role: 'guardian' | 'student' | 'admin') => Promise<void>;
+  onUpdateRole: (
+    userId: string,
+    role: "guardian" | "student" | "admin",
+  ) => Promise<void>;
 }
 
 export function UserRoleDialog({
@@ -16,11 +19,11 @@ export function UserRoleDialog({
   currentRole,
   onClose,
   onUpdateRole,
-  className
+  className,
 }: UserRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<'guardian' | 'student' | 'admin'>(
-    currentRole as 'guardian' | 'student' | 'admin'
-  );
+  const [selectedRole, setSelectedRole] = useState<
+    "guardian" | "student" | "admin"
+  >(currentRole as "guardian" | "student" | "admin");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,11 +38,17 @@ export function UserRoleDialog({
       await onUpdateRole(userId, selectedRole);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update user role');
+      setError(
+        err instanceof Error ? err.message : "Failed to update user role",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (error) {
+    console.log("UserRoleDialog error state:", error);
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -48,18 +57,23 @@ export function UserRoleDialog({
           <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
         </div>
 
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+        <span
+          className="hidden sm:inline-block sm:align-middle sm:h-screen"
+          aria-hidden="true"
+        >
           &#8203;
         </span>
 
         <div
-          className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${className || ''}`}
+          className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${className || ""}`}
         >
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="sm:flex sm:items-start">
               <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">Update User Role</h3>
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Update User Role
+                  </h3>
                   <button
                     type="button"
                     className="text-gray-400 hover:text-gray-500"
@@ -87,11 +101,14 @@ export function UserRoleDialog({
                           name="role"
                           type="radio"
                           value="guardian"
-                          checked={selectedRole === 'guardian'}
-                          onChange={() => setSelectedRole('guardian')}
+                          checked={selectedRole === "guardian"}
+                          onChange={() => setSelectedRole("guardian")}
                           className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                         />
-                        <label htmlFor="role-guardian" className="ml-3 block text-sm font-medium text-gray-700">
+                        <label
+                          htmlFor="role-guardian"
+                          className="ml-3 block text-sm font-medium text-gray-700"
+                        >
                           Guardian
                         </label>
                       </div>
@@ -101,11 +118,14 @@ export function UserRoleDialog({
                           name="role"
                           type="radio"
                           value="student"
-                          checked={selectedRole === 'student'}
-                          onChange={() => setSelectedRole('student')}
+                          checked={selectedRole === "student"}
+                          onChange={() => setSelectedRole("student")}
                           className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                         />
-                        <label htmlFor="role-student" className="ml-3 block text-sm font-medium text-gray-700">
+                        <label
+                          htmlFor="role-student"
+                          className="ml-3 block text-sm font-medium text-gray-700"
+                        >
                           Student
                         </label>
                       </div>
@@ -115,11 +135,14 @@ export function UserRoleDialog({
                           name="role"
                           type="radio"
                           value="admin"
-                          checked={selectedRole === 'admin'}
-                          onChange={() => setSelectedRole('admin')}
+                          checked={selectedRole === "admin"}
+                          onChange={() => setSelectedRole("admin")}
                           className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                         />
-                        <label htmlFor="role-admin" className="ml-3 block text-sm font-medium text-gray-700">
+                        <label
+                          htmlFor="role-admin"
+                          className="ml-3 block text-sm font-medium text-gray-700"
+                        >
                           Admin
                         </label>
                       </div>
@@ -132,7 +155,7 @@ export function UserRoleDialog({
                       disabled={isSubmitting || selectedRole === currentRole}
                       className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
                     >
-                      {isSubmitting ? 'Updating...' : 'Update Role'}
+                      {isSubmitting ? "Updating..." : "Update Role"}
                     </button>
                     <button
                       type="button"

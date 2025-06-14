@@ -31,7 +31,7 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],
-  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '<rootDir>/tests/playwright/'],
   watchPathIgnorePatterns: ['/node_modules/', '/dist/'],
   verbose: true
 };
