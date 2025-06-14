@@ -66,3 +66,10 @@ memory-bank/**/*
 
 #Scripts
 scripts/**/*
+
+# Added by Task Master AI
+# Environment variables
+.idea
+.vscode
+# OS specific
+# Task files

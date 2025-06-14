@@ -40,3 +40,51 @@
 # Production context
 [context.production]
   command = "npm run build"
+
+# Edge Functions Configuration
+# Admin Functions
+[[edge_functions]]
+  path = "/api/admin-get-users"
+  function = "admin-get-users"
+
+[[edge_functions]]
+  path = "/api/admin-get-user-activity"
+  function = "admin-get-user-activity"
+
+[[edge_functions]]
+  path = "/api/admin-get-user-subscriptions"
+  function = "admin-get-user-subscriptions"
+
+[[edge_functions]]
+  path = "/api/admin-update-user-status"
+  function = "admin-update-user-status"
+
+[[edge_functions]]
+  path = "/api/admin-update-user-role"
+  function = "admin-update-user-role"
+
+# PayPal Functions
+[[edge_functions]]
+  path = "/api/create-paypal-subscription"
+  function = "create-paypal-subscription"
+
+[[edge_functions]]
+  path = "/api/get-paypal-subscription-details"
+  function = "get-paypal-subscription-details"
+
+[[edge_functions]]
+  path = "/api/get-paypal-plan-details"
+  function = "get-paypal-plan-details"
+
+[[edge_functions]]
+  path = "/api/create-paypal-product-plan"
+  function = "create-paypal-product-plan"
+
+[[edge_functions]]
+  path = "/api/cancel-paypal-subscription"
+  function = "cancel-paypal-subscription"
+
+# Webhook Handler
+[[edge_functions]]
+  path = "/api/webhook-handler"
+  function = "webhook-handler"

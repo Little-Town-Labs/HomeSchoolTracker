@@ -16,13 +16,15 @@ To prevent exposing secrets, the build will fail until these secret values are n
 ## Root Cause Analysis
 
 **Identified Secrets:** Hardcoded test passwords in multiple files:
+
 - `secureAdminPassword123` - Used in test files for admin user authentication
 - `secureUserPassword123` - Used for regular user testing
 - `userPassword123` - Alternative test password
 
 **Affected Files:**
+
 - `tests/*.spec.ts` - Playwright test files
-- `tests/edge-functions/*.spec.ts` - Edge function tests  
+- `tests/edge-functions/*.spec.ts` - Edge function tests
 - `testing/seed-users.js` - Database seeding script
 - `testing/create-test-users.js` - User creation utility
 
@@ -39,6 +41,7 @@ To prevent exposing secrets, the build will fail until these secret values are n
 ```
 
 **Rationale:**
+
 - Test passwords are not real production secrets
 - Excluding test directories maintains security for actual source code
 - Preserves comprehensive E2E testing infrastructure
@@ -49,11 +52,13 @@ To prevent exposing secrets, the build will fail until these secret values are n
 ## Security Considerations
 
 **Protected:** Production environment variables still scanned:
+
 - `VITE_SUPABASE_URL` (omitted - public Supabase URL)
 - `VITE_SUPABASE_ANON_KEY` (omitted - public anon key)
 - `VITE_RESEND_API_KEY` (omitted - needed in frontend)
 
 **Best Practices:**
+
 - Test passwords remain isolated to test files
 - Real secrets managed through Netlify environment variables
 - Clear separation between test and production credentials
@@ -75,4 +80,4 @@ To prevent exposing secrets, the build will fail until these secret values are n
 
 ✅ **Resolved:** Netlify deployment now passes secrets scanning  
 ✅ **Tested:** Configuration allows successful builds  
-✅ **Documented:** Solution recorded for team reference 
+✅ **Documented:** Solution recorded for team reference
