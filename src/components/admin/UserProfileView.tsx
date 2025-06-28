@@ -1,19 +1,34 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { ComponentProps, Profile, UserActivity } from '@/types';
-import { format } from 'date-fns';
-import { X, Calendar, Clock, User, Mail, Tag, Activity, Filter } from 'lucide-react';
+import { useState, useEffect, useCallback } from "react";
+import type { ComponentProps, Profile, UserActivity } from "@/types";
+import { format } from "date-fns";
+import {
+  X,
+  Calendar,
+  Clock,
+  User,
+  Mail,
+  Tag,
+  Activity,
+  Filter,
+  Shield,
+  ShieldCheck,
+} from "lucide-react";
+import { useExemptionManagement } from "@/hooks/useExemptionManagement";
 
 interface UserProfileViewProps extends ComponentProps {
   isOpen: boolean;
   userId: string;
   onClose: () => void;
-  getUserActivity: (userId: string, options?: {
-    activityType?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: number;
-    pageSize?: number;
-  }) => Promise<{
+  getUserActivity: (
+    userId: string,
+    options?: {
+      activityType?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ) => Promise<{
     activities: UserActivity[];
     activityTypes: string[];
     pagination: {
@@ -32,24 +47,32 @@ export function UserProfileView({
   onClose,
   getUserActivity,
   getUserProfile,
-  className
+  className,
 }: UserProfileViewProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [activityTypes, setActivityTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activityFilter, setActivityFilter] = useState<string>('');
+  const [activityFilter, setActivityFilter] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Exemption management
+  const { updateExemption, isLoading: exemptionLoading } =
+    useExemptionManagement();
+  const [exemptionUpdateMessage, setExemptionUpdateMessage] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const fetchUserProfile = useCallback(async () => {
     try {
       const profileData = await getUserProfile(userId);
       setProfile(profileData);
     } catch (err) {
-      console.error('Error fetching user profile:', err);
-      setError('Failed to load user profile');
+      console.error("Error fetching user profile:", err);
+      setError("Failed to load user profile");
     }
   }, [userId, getUserProfile]);
 
@@ -62,7 +85,7 @@ export function UserProfileView({
         pageSize: number;
       } = {
         page: currentPage,
-        pageSize: 10
+        pageSize: 10,
       };
 
       if (activityFilter) {
@@ -74,8 +97,8 @@ export function UserProfileView({
       setActivityTypes(result.activityTypes);
       setTotalPages(result.pagination.totalPages);
     } catch (err) {
-      console.error('Error fetching user activity:', err);
-      setError('Failed to load user activity');
+      console.error("Error fetching user activity:", err);
+      setError("Failed to load user activity");
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +112,7 @@ export function UserProfileView({
   }, [isOpen, userId, fetchUserProfile, fetchUserActivity]);
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'PPpp'); // Format like: Apr 28, 2025, 4:52:00 PM
+    return format(new Date(dateString), "PPpp"); // Format like: Apr 28, 2025, 4:52:00 PM
   };
 
   const handlePageChange = (page: number) => {
@@ -101,6 +124,32 @@ export function UserProfileView({
     setCurrentPage(1); // Reset to first page when filter changes
   };
 
+  const handleExemptionToggle = async () => {
+    if (!profile) return;
+
+    const newExemptStatus = !profile.subscription_exempt;
+    const result = await updateExemption(userId, newExemptStatus);
+
+    if (result.success) {
+      setExemptionUpdateMessage({
+        type: "success",
+        message: `Subscription exemption ${newExemptStatus ? "granted" : "removed"} successfully.`,
+      });
+      // Refresh profile to show updated status
+      await fetchUserProfile();
+    } else {
+      setExemptionUpdateMessage({
+        type: "error",
+        message: result.error || "Failed to update exemption status",
+      });
+    }
+
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      setExemptionUpdateMessage(null);
+    }, 5000);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -110,16 +159,21 @@ export function UserProfileView({
           <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
         </div>
 
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+        <span
+          className="hidden sm:inline-block sm:align-middle sm:h-screen"
+          aria-hidden="true"
+        >
           &#8203;
         </span>
 
         <div
-          className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full ${className || ''}`}
+          className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full ${className || ""}`}
         >
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">User Profile</h3>
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                User Profile
+              </h3>
               <button
                 type="button"
                 className="text-gray-400 hover:text-gray-500"
@@ -135,6 +189,18 @@ export function UserProfileView({
               </div>
             )}
 
+            {exemptionUpdateMessage && (
+              <div
+                className={`mb-4 px-4 py-3 rounded relative ${
+                  exemptionUpdateMessage.type === "success"
+                    ? "bg-green-50 border border-green-200 text-green-700"
+                    : "bg-red-50 border border-red-200 text-red-700"
+                }`}
+              >
+                {exemptionUpdateMessage.message}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* User Profile Section */}
               <div className="md:col-span-1 bg-gray-50 p-4 rounded-lg">
@@ -145,7 +211,9 @@ export function UserProfileView({
                         <User className="h-10 w-10 text-blue-600" />
                       </div>
                     </div>
-                    <h4 className="text-xl font-medium text-center mb-4">{profile.name || 'No Name'}</h4>
+                    <h4 className="text-xl font-medium text-center mb-4">
+                      {profile.name || "No Name"}
+                    </h4>
                     <div className="space-y-3">
                       <div className="flex items-center">
                         <Mail className="h-5 w-5 text-gray-400 mr-2" />
@@ -153,34 +221,97 @@ export function UserProfileView({
                       </div>
                       <div className="flex items-center">
                         <Tag className="h-5 w-5 text-gray-400 mr-2" />
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          profile.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                          profile.role === 'guardian' ? 'bg-blue-100 text-blue-800' :
-                          'bg-teal-100 text-teal-800'
-                        }`}>
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            profile.role === "admin"
+                              ? "bg-purple-100 text-purple-800"
+                              : profile.role === "guardian"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-teal-100 text-teal-800"
+                          }`}
+                        >
                           {profile.role}
                         </span>
                       </div>
                       <div className="flex items-center">
                         <div className="h-5 w-5 text-gray-400 mr-2 flex items-center justify-center">
-                          <div className={`h-3 w-3 rounded-full ${
-                            profile.status === 'active' ? 'bg-green-500' :
-                            profile.status === 'suspended' ? 'bg-red-500' :
-                            profile.status === 'pending' ? 'bg-yellow-500' :
-                            'bg-gray-500'
-                          }`}></div>
+                          <div
+                            className={`h-3 w-3 rounded-full ${
+                              profile.status === "active"
+                                ? "bg-green-500"
+                                : profile.status === "suspended"
+                                  ? "bg-red-500"
+                                  : profile.status === "pending"
+                                    ? "bg-yellow-500"
+                                    : "bg-gray-500"
+                            }`}
+                          ></div>
                         </div>
-                        <span className="text-gray-700 capitalize">{profile.status}</span>
+                        <span className="text-gray-700 capitalize">
+                          {profile.status}
+                        </span>
                       </div>
                       <div className="flex items-center">
                         <Calendar className="h-5 w-5 text-gray-400 mr-2" />
-                        <span className="text-gray-700">Joined {formatDate(profile.created_at)}</span>
+                        <span className="text-gray-700">
+                          Joined {formatDate(profile.created_at)}
+                        </span>
+                      </div>
+
+                      {/* Subscription Exemption Status */}
+                      <div className="pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            {profile.subscription_exempt ? (
+                              <ShieldCheck className="h-5 w-5 text-green-500 mr-2" />
+                            ) : (
+                              <Shield className="h-5 w-5 text-gray-400 mr-2" />
+                            )}
+                            <span className="text-sm font-medium text-gray-700">
+                              Subscription Exempt
+                            </span>
+                          </div>
+                          <span
+                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              profile.subscription_exempt
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {profile.subscription_exempt ? "Yes" : "No"}
+                          </span>
+                        </div>
+
+                        {/* Exemption Management Button */}
+                        <button
+                          onClick={handleExemptionToggle}
+                          disabled={exemptionLoading}
+                          className={`mt-2 w-full px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                            profile.subscription_exempt
+                              ? "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50"
+                              : "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 disabled:opacity-50"
+                          }`}
+                        >
+                          {exemptionLoading ? (
+                            <div className="flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                              Updating...
+                            </div>
+                          ) : profile.subscription_exempt ? (
+                            "Remove Exemption"
+                          ) : (
+                            "Grant Exemption"
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" role="status"></div>
+                    <div
+                      className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+                      role="status"
+                    ></div>
                   </div>
                 )}
               </div>
@@ -199,7 +330,9 @@ export function UserProfileView({
                       <option value="">All Activities</option>
                       {activityTypes.map((type) => (
                         <option key={type} value={type}>
-                          {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {type
+                            .replace(/_/g, " ")
+                            .replace(/\b\w/g, (l) => l.toUpperCase())}
                         </option>
                       ))}
                     </select>
@@ -208,23 +341,35 @@ export function UserProfileView({
 
                 {isLoading ? (
                   <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" role="status"></div>
+                    <div
+                      className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+                      role="status"
+                    ></div>
                   </div>
                 ) : activities.length > 0 ? (
                   <div className="space-y-4">
                     {activities.map((activity) => (
-                      <div key={activity.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                      <div
+                        key={activity.id}
+                        className="border-l-4 border-blue-500 pl-4 py-2"
+                      >
                         <div className="flex items-start">
                           <Activity className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
                           <div>
-                            <p className="text-gray-700">{activity.description}</p>
+                            <p className="text-gray-700">
+                              {activity.description}
+                            </p>
                             <div className="flex items-center mt-1 text-xs text-gray-500">
                               <Clock className="h-3 w-3 mr-1" />
                               <span>{formatDate(activity.created_at)}</span>
                               {activity.actor && (
                                 <>
                                   <span className="mx-1">•</span>
-                                  <span>By {activity.actor.name || activity.actor.email}</span>
+                                  <span>
+                                    By{" "}
+                                    {activity.actor.name ||
+                                      activity.actor.email}
+                                  </span>
                                 </>
                               )}
                             </div>
@@ -236,40 +381,66 @@ export function UserProfileView({
                     {/* Pagination */}
                     {totalPages > 1 && (
                       <div className="flex justify-center mt-6">
-                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <nav
+                          className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                          aria-label="Pagination"
+                        >
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
                             className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                           >
                             <span className="sr-only">Previous</span>
-                            <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                            <svg
+                              className="h-5 w-5"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
                             </svg>
                           </button>
-                          
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+
+                          {Array.from(
+                            { length: totalPages },
+                            (_, i) => i + 1,
+                          ).map((page) => (
                             <button
                               key={page}
                               onClick={() => handlePageChange(page)}
                               className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                 currentPage === page
-                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                  ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                                  : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                               }`}
                             >
                               {page}
                             </button>
                           ))}
-                          
+
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages}
                             className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                           >
                             <span className="sr-only">Next</span>
-                            <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            <svg
+                              className="h-5 w-5"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clipRule="evenodd"
+                              />
                             </svg>
                           </button>
                         </nav>

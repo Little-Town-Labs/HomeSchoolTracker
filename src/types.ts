@@ -4,6 +4,7 @@ export interface Profile {
   role: "guardian" | "student" | "admin";
   name?: string;
   status: "active" | "suspended" | "pending" | "deactivated";
+  subscription_exempt?: boolean;
   created_at: string;
 }
 
@@ -122,7 +123,7 @@ export interface UserSubscription {
   user_id: string;
   plan_id: string;
   paypal_subscription_id: string;
-  status: 'active' | 'cancelled' | 'expired' | 'pending' | 'trial';
+  status: "active" | "cancelled" | "expired" | "pending" | "trial";
   start_date: string; // ISO 8601 date string
   end_date?: string | null; // ISO 8601 date string
   trial_end_date?: string | null; // ISO 8601 date string
@@ -135,33 +136,33 @@ export interface UserSubscription {
 
 // Represents a subscription plan
 export interface SubscriptionPlan {
-    id: string;
-    name: string;
-    description?: string | null;
-    price: number;
-    currency: string;
-    paypal_plan_id: string;
-    created_at: string; // ISO 8601 date string
-    updated_at?: string | null; // ISO 8601 date string
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  currency: string;
+  paypal_plan_id: string;
+  created_at: string; // ISO 8601 date string
+  updated_at?: string | null; // ISO 8601 date string
 }
 
 // Represents a user activity log entry
 export interface UserActivity {
+  id: string;
+  user_id: string;
+  actor_id: string;
+  activity_type: string;
+  description: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  user?: {
     id: string;
-    user_id: string;
-    actor_id: string;
-    activity_type: string;
-    description: string;
-    metadata: Record<string, unknown>;
-    created_at: string;
-    user?: {
-        id: string;
-        email: string;
-        name?: string;
-    };
-    actor?: {
-        id: string;
-        email: string;
-        name?: string;
-    };
+    email: string;
+    name?: string;
+  };
+  actor?: {
+    id: string;
+    email: string;
+    name?: string;
+  };
 }

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { UserSubscription } from '@/types';
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { UserSubscription, Profile } from "@/types";
 
 interface UseUserSubscriptionResult {
   subscription: UserSubscription | null;
@@ -10,48 +10,68 @@ interface UseUserSubscriptionResult {
   isTrialing: boolean;
   isCancelled: boolean;
   isExpired: boolean;
+  isExempt: boolean;
 }
 
 export function useUserSubscription(): UseUserSubscriptionResult {
-  const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+  const [subscription, setSubscription] = useState<UserSubscription | null>(
+    null,
+  );
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchSubscription = async () => {
+    const fetchSubscriptionAndProfile = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         if (!user) {
           setSubscription(null);
+          setProfile(null);
           setIsLoading(false);
           return;
         }
 
-        const { data, error } = await supabase
-          .from('user_subscriptions')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        // Fetch both subscription and profile data
+        const [subscriptionResponse, profileResponse] = await Promise.all([
+          supabase
+            .from("user_subscriptions")
+            .select("*")
+            .eq("user_id", user.id)
+            .single(),
+          supabase.from("profiles").select("*").eq("id", user.id).single(),
+        ]);
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-          throw error;
+        // Handle subscription data
+        if (
+          subscriptionResponse.error &&
+          subscriptionResponse.error.code !== "PGRST116"
+        ) {
+          throw subscriptionResponse.error;
         }
+        setSubscription(subscriptionResponse.data || null);
 
-        setSubscription(data || null);
-
+        // Handle profile data
+        if (profileResponse.error) {
+          throw profileResponse.error;
+        }
+        setProfile(profileResponse.data);
       } catch (err) {
-        console.error('Error fetching user subscription:', err);
+        console.error("Error fetching user subscription and profile:", err);
         setError(err as Error);
         setSubscription(null);
+        setProfile(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchSubscription();
+    fetchSubscriptionAndProfile();
 
     // Optional: Set up real-time subscription listener if needed later
     // const subscriptionListener = supabase
@@ -65,14 +85,22 @@ export function useUserSubscription(): UseUserSubscriptionResult {
     // return () => {
     //   subscriptionListener.unsubscribe();
     // };
-
   }, []);
 
-  const isSubscribed = !!(subscription?.status === 'active');
-  const isTrialing = !!(subscription?.status === 'trial' && new Date(subscription.trial_end_date || '') > new Date());
-  const isCancelled = !!(subscription?.status === 'cancelled');
-  const isExpired = !!(subscription?.status === 'expired' || (subscription?.end_date && new Date(subscription.end_date) < new Date()));
+  // Check if user is exempt from subscription requirements
+  const isExempt = !!profile?.subscription_exempt;
 
+  // Enhanced subscription logic that includes exemption
+  const isSubscribed = !!(subscription?.status === "active" || isExempt);
+  const isTrialing = !!(
+    subscription?.status === "trial" &&
+    new Date(subscription.trial_end_date || "") > new Date()
+  );
+  const isCancelled = !!(subscription?.status === "cancelled");
+  const isExpired = !!(
+    subscription?.status === "expired" ||
+    (subscription?.end_date && new Date(subscription.end_date) < new Date())
+  );
 
   return {
     subscription,
@@ -82,5 +110,6 @@ export function useUserSubscription(): UseUserSubscriptionResult {
     isTrialing,
     isCancelled,
     isExpired,
+    isExempt,
   };
 }
