@@ -24,11 +24,19 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# SPA redirect
+# Ensure assets are served as static files (never redirect)
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+  force = true
+
+# SPA redirect - exclude static assets and api routes  
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
 
 # Deploy previews configuration
 [context.deploy-preview]
