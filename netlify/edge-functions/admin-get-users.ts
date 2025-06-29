@@ -33,6 +33,7 @@ export default async (req: Request) => {
     );
 
     if (authError || !user) {
+      console.error('Auth error:', authError);
       return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
@@ -46,7 +47,15 @@ export default async (req: Request) => {
       .eq('id', user.id)
       .single();
 
-    if (profileError || profile?.role !== 'admin') {
+    if (profileError) {
+      console.error('Profile error:', profileError);
+      return new Response(JSON.stringify({ error: 'Failed to verify admin access' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (profile?.role !== 'admin') {
       return new Response(JSON.stringify({ error: 'Admin access required' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
@@ -66,7 +75,7 @@ export default async (req: Request) => {
       sortOrder: (url.searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
     };
 
-    // Build query
+    // Build query - use only columns that exist in the database
     let query = supabaseClient
       .from('profiles')
       .select(`
@@ -75,9 +84,7 @@ export default async (req: Request) => {
         name,
         role,
         status,
-        created_at,
-        created_at as updated_at,
-        created_at as last_sign_in_at
+        created_at
       `, { count: 'exact' });
 
     // Apply filters
@@ -106,7 +113,7 @@ export default async (req: Request) => {
 
     if (queryError) {
       console.error('Database query error:', queryError);
-      return new Response(JSON.stringify({ error: 'Failed to fetch users' }), {
+      return new Response(JSON.stringify({ error: 'Failed to fetch users', details: queryError.message }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -114,8 +121,16 @@ export default async (req: Request) => {
 
     const totalPages = Math.ceil((count || 0) / queryParams.pageSize);
 
+    // Transform the data to match expected format
+    const transformedUsers = users?.map(user => ({
+      ...user,
+      // Add placeholder values for expected fields that don't exist in database
+      updated_at: user.created_at, // Use created_at as fallback
+      last_sign_in_at: user.created_at // Use created_at as fallback
+    })) || [];
+
     return new Response(JSON.stringify({
-      users,
+      users: transformedUsers,
       pagination: {
         page: queryParams.page,
         pageSize: queryParams.pageSize,
@@ -131,7 +146,10 @@ export default async (req: Request) => {
 
   } catch (error) {
     console.error('Unexpected error in admin-get-users:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import { CourseManagement } from "./CourseManagement";
 import { GroupedCourseList } from "./GroupedCourseList";
@@ -18,6 +18,25 @@ export function CourseList({
   onDeleteCourse,
 }: CourseListProps) {
   const [showCourseManagement, setShowCourseManagement] = useState(false);
+  const renderCount = useRef(0);
+  const prevProps = useRef({ studentId, courses: courses.length });
+
+  // Track re-renders and prop changes
+  useEffect(() => {
+    renderCount.current += 1;
+    const currentProps = { studentId, courses: courses.length };
+
+    console.log(`CourseList render #${renderCount.current}`, {
+      studentId,
+      coursesCount: courses.length,
+      propsChanged: {
+        studentId: prevProps.current.studentId !== currentProps.studentId,
+        coursesLength: prevProps.current.courses !== currentProps.courses,
+      },
+    });
+
+    prevProps.current = currentProps;
+  });
 
   // Log studentId for debugging
   console.log("CourseList received studentId:", studentId);

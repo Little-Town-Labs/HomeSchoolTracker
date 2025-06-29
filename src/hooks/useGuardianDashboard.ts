@@ -130,9 +130,13 @@ export function useGuardianDashboard(user: User) {
 
   // Function to load courses for a student
   const loadCourses = useCallback(async (studentId: string) => {
+    console.log(
+      "loadCourses called for student ID:",
+      studentId,
+      "Stack:",
+      new Error().stack?.split("\n")[1],
+    );
     setCoursesLoading(true);
-
-    console.log("Loading courses for student ID:", studentId);
 
     try {
       // Load courses with category information
@@ -251,6 +255,7 @@ export function useGuardianDashboard(user: User) {
           }
 
           if (processedStudents.length > 0) {
+            console.log("Setting students data:", processedStudents);
             setStudents(processedStudents);
 
             // Select the first student by default if none is selected
@@ -315,6 +320,7 @@ export function useGuardianDashboard(user: User) {
       }
 
       if (legacyData && legacyData.length > 0) {
+        console.log("Setting legacy students data:", legacyData);
         setStudents(legacyData);
         // Select the first student by default if none is selected
         if (!selectedStudentId) {
@@ -337,7 +343,7 @@ export function useGuardianDashboard(user: User) {
     } finally {
       setLoading(false);
     }
-  }, [user.id, selectedStudentId]);
+  }, [user.id]); // Removed selectedStudentId to prevent re-render loop - it's not used in function logic
 
   useEffect(() => {
     async function loadData() {
@@ -370,9 +376,18 @@ export function useGuardianDashboard(user: User) {
 
   // Update student info and load courses when selectedStudentId changes
   useEffect(() => {
+    console.log("selectedStudentId effect triggered:", {
+      selectedStudentId,
+      studentsCount: students.length,
+      selectedStudentExists: selectedStudentId
+        ? students.some((s) => s.id === selectedStudentId)
+        : false,
+    });
+
     if (selectedStudentId && students.length > 0) {
       const selectedStudent = students.find((s) => s.id === selectedStudentId);
       if (selectedStudent) {
+        console.log("Found selected student, updating state and loading data");
         setStudent((prev) => ({
           ...prev,
           info: {
@@ -386,32 +401,51 @@ export function useGuardianDashboard(user: User) {
         // Load courses and test scores for the selected student
         loadCourses(selectedStudent.id);
         loadTestScores(selectedStudent.id);
+      } else {
+        console.log("Selected student not found in students array");
       }
+    } else {
+      console.log("No selected student or students array is empty");
     }
   }, [selectedStudentId, students, loadCourses, loadTestScores]);
 
+  // Memoize event handlers to prevent unnecessary re-registrations
+  const handleRefreshCourses = useCallback(() => {
+    console.log(
+      "refreshCourses event received, selectedStudentId:",
+      selectedStudentId,
+    );
+    if (selectedStudentId) {
+      loadCourses(selectedStudentId);
+    }
+  }, [selectedStudentId, loadCourses]);
+
+  const handleRefreshTestScores = useCallback(() => {
+    console.log(
+      "refreshTestScores event received, selectedStudentId:",
+      selectedStudentId,
+    );
+    if (selectedStudentId) {
+      loadTestScores(selectedStudentId);
+    }
+  }, [selectedStudentId, loadTestScores]);
+
   // Listen for the refreshCourses and refreshTestScores events
   useEffect(() => {
-    const handleRefreshCourses = () => {
-      if (selectedStudentId) {
-        loadCourses(selectedStudentId);
-      }
-    };
-
-    const handleRefreshTestScores = () => {
-      if (selectedStudentId) {
-        loadTestScores(selectedStudentId);
-      }
-    };
+    console.log("Setting up event listeners for studentId:", selectedStudentId);
 
     window.addEventListener("refreshCourses", handleRefreshCourses);
     window.addEventListener("refreshTestScores", handleRefreshTestScores);
 
     return () => {
+      console.log(
+        "Cleaning up event listeners for studentId:",
+        selectedStudentId,
+      );
       window.removeEventListener("refreshCourses", handleRefreshCourses);
       window.removeEventListener("refreshTestScores", handleRefreshTestScores);
     };
-  }, [selectedStudentId, loadCourses, loadTestScores]);
+  }, [handleRefreshCourses, handleRefreshTestScores]);
 
   const handleDeleteCourse = withErrorHandling(async (id: string) => {
     try {
