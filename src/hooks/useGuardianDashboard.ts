@@ -347,6 +347,8 @@ export function useGuardianDashboard(user: User) {
 
   useEffect(() => {
     async function loadData() {
+      console.log("loadData (schools) effect running for user:", user.id);
+
       // Load school data
       const { data: schools } = await supabase
         .from("schools")
@@ -365,14 +367,52 @@ export function useGuardianDashboard(user: User) {
         school: schools[0],
       }));
 
-      // Load student data
-      await loadStudents();
+      // Load student data directly without unstable callback dependency
+      console.log("Loading students directly in loadData");
+      try {
+        const { data: studentsData, error: studentsError } = await supabase
+          .from("students")
+          .select("*")
+          .eq("guardian_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (studentsError) throw studentsError;
+
+        if (studentsData && studentsData.length > 0) {
+          const processedStudents = studentsData.map((student) => {
+            const typedStudent = student as unknown as {
+              id: string;
+              student_id: string;
+              name: string;
+              birth_date: string;
+              graduation_date: string;
+            };
+            return {
+              id: typedStudent.id,
+              student_id: typedStudent.student_id,
+              name: typedStudent.name,
+              birth_date: typedStudent.birth_date,
+              graduation_date: typedStudent.graduation_date,
+            };
+          });
+          console.log(
+            "Setting students data from loadData:",
+            processedStudents,
+          );
+          setStudents(processedStudents);
+        } else {
+          setStudents([]);
+        }
+      } catch (error) {
+        console.error("Error loading students in loadData:", error);
+        setStudents([]);
+      }
 
       setLoading(false);
     }
 
     loadData();
-  }, [user.id, loadStudents]);
+  }, [user.id]); // Removed loadStudents dependency to prevent re-render loop
 
   // Update student info and load courses when selectedStudentId changes
   useEffect(() => {
