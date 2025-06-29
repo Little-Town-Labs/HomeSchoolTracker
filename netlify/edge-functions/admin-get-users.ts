@@ -72,12 +72,12 @@ export default async (req: Request) => {
       .select(`
         id,
         email,
-        full_name,
+        name,
         role,
         status,
         created_at,
-        updated_at,
-        last_sign_in_at
+        created_at as updated_at,
+        created_at as last_sign_in_at
       `, { count: 'exact' });
 
     // Apply filters
