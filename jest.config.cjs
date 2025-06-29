@@ -7,6 +7,7 @@ module.exports = {
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/lib/supabase$': '<rootDir>/src/lib/__mocks__/supabase.ts',
     '^src/lib/supabase$': '<rootDir>/src/lib/__mocks__/supabase.ts'
   },
   collectCoverageFrom: [
@@ -28,6 +29,9 @@ module.exports = {
     '**/*.test.{ts,tsx}',
     '**/__tests__/**/*.{ts,tsx}',
     '**/?(*.)+(spec|test).{ts,tsx}'
+  ],
+  transformIgnorePatterns: [
+    'node_modules/(?!(@supabase|@supabase/supabase-js|@supabase/realtime-js|@supabase/postgrest-js|@supabase/storage-js|@supabase/functions-js|@supabase/gotrue-js)/)'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],
