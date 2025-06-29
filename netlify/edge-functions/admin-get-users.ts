@@ -82,7 +82,7 @@ export default async (req: Request) => {
 
     // Apply filters
     if (queryParams.name) {
-      query = query.ilike('full_name', `%${queryParams.name}%`);
+      query = query.ilike('name', `%${queryParams.name}%`);
     }
     if (queryParams.email) {
       query = query.ilike('email', `%${queryParams.email}%`);

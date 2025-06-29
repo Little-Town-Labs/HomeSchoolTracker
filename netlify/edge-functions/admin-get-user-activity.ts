@@ -75,7 +75,7 @@ export default async (req: Request) => {
         activity_type,
         activity_data,
         created_at,
-        profiles!inner(email, full_name)
+        profiles!inner(email, name)
       `, { count: 'exact' });
 
     // Apply filters
