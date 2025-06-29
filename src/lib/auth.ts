@@ -664,3 +664,58 @@ export async function getCurrentUser(): Promise<User | null> {
     return null;
   }
 }
+
+/**
+ * Make authenticated HTTP request to Netlify Edge Functions
+ */
+export async function makeAuthenticatedRequest(
+  path: string,
+  options: {
+    method?: "GET" | "POST" | "PUT" | "DELETE";
+    body?: unknown;
+    params?: Record<string, string>;
+  } = {},
+) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error("No active session");
+  }
+
+  const { method = "GET", body, params } = options;
+
+  // Build URL with query parameters for GET requests
+  let url = `/api/${path}`;
+  if (method === "GET" && params) {
+    const searchParams = new URLSearchParams(params);
+    url += `?${searchParams.toString()}`;
+  }
+
+  const requestOptions: RequestInit = {
+    method,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+  };
+
+  // Add body for POST/PUT requests
+  if ((method === "POST" || method === "PUT") && body) {
+    requestOptions.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(url, requestOptions);
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
+    throw new Error(
+      errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+    );
+  }
+
+  return response.json();
+}

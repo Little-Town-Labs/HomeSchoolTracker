@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Profile, UserActivity } from '@/types';
+import { useState, useEffect, useCallback } from "react";
+import { makeAuthenticatedRequest } from "@/lib/auth";
+import { Profile, UserActivity } from "@/types";
 
 interface UserManagementFilters {
   name?: string;
@@ -11,7 +11,7 @@ interface UserManagementFilters {
 
 interface UserManagementSort {
   sortBy: string;
-  sortOrder: 'asc' | 'desc';
+  sortOrder: "asc" | "desc";
 }
 
 interface UserManagementPagination {
@@ -32,15 +32,25 @@ interface UseUserManagementResult {
   setPagination: (pagination: Partial<UserManagementPagination>) => void;
   setSorting: (sorting: UserManagementSort) => void;
   refreshUsers: () => Promise<void>;
-  updateUserRole: (userId: string, role: 'guardian' | 'student' | 'admin') => Promise<void>;
-  updateUserStatus: (userId: string, status: 'active' | 'suspended' | 'pending' | 'deactivated', reason?: string) => Promise<void>;
-  getUserActivity: (userId: string, options?: {
-    activityType?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: number;
-    pageSize?: number;
-  }) => Promise<{
+  updateUserRole: (
+    userId: string,
+    role: "guardian" | "student" | "admin",
+  ) => Promise<void>;
+  updateUserStatus: (
+    userId: string,
+    status: "active" | "suspended" | "pending" | "deactivated",
+    reason?: string,
+  ) => Promise<void>;
+  getUserActivity: (
+    userId: string,
+    options?: {
+      activityType?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ) => Promise<{
     activities: UserActivity[];
     activityTypes: string[];
     pagination: UserManagementPagination;
@@ -56,50 +66,48 @@ export function useUserManagement(): UseUserManagementResult {
     page: 1,
     pageSize: 10,
     totalCount: 0,
-    totalPages: 0
+    totalPages: 0,
   });
   const [sorting, setSorting] = useState<UserManagementSort>({
-    sortBy: 'created_at',
-    sortOrder: 'desc'
+    sortBy: "created_at",
+    sortOrder: "desc",
   });
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const queryParams = new URLSearchParams();
-      
+      const params: Record<string, string> = {};
+
       // Add filters
-      if (filters.name) queryParams.append('name', filters.name);
-      if (filters.email) queryParams.append('email', filters.email);
-      if (filters.role) queryParams.append('role', filters.role);
-      if (filters.status) queryParams.append('status', filters.status);
-      
+      if (filters.name) params.name = filters.name;
+      if (filters.email) params.email = filters.email;
+      if (filters.role) params.role = filters.role;
+      if (filters.status) params.status = filters.status;
+
       // Add pagination
-      queryParams.append('page', pagination.page.toString());
-      queryParams.append('pageSize', pagination.pageSize.toString());
-      
+      params.page = pagination.page.toString();
+      params.pageSize = pagination.pageSize.toString();
+
       // Add sorting
-      queryParams.append('sortBy', sorting.sortBy);
-      queryParams.append('sortOrder', sorting.sortOrder);
-      
-      const { data, error: fetchError } = await supabase.functions.invoke('admin-get-users', {
-        body: { queryParams: Object.fromEntries(queryParams.entries()) }
+      params.sortBy = sorting.sortBy;
+      params.sortOrder = sorting.sortOrder;
+
+      const data = await makeAuthenticatedRequest("admin-get-users", {
+        method: "GET",
+        params,
       });
-      
-      if (fetchError) throw new Error(fetchError.message);
-      
+
       setUsers(data.users || []);
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
         totalCount: data.pagination.totalCount,
-        totalPages: data.pagination.totalPages
+        totalPages: data.pagination.totalPages,
       }));
-      
     } catch (err) {
-      console.error('Error fetching users:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch users'));
+      console.error("Error fetching users:", err);
+      setError(err instanceof Error ? err : new Error("Failed to fetch users"));
     } finally {
       setIsLoading(false);
     }
@@ -113,84 +121,103 @@ export function useUserManagement(): UseUserManagementResult {
     await fetchUsers();
   }, [fetchUsers]);
 
-  const updateUserRole = useCallback(async (userId: string, role: 'guardian' | 'student' | 'admin') => {
-    try {
-      const { data, error } = await supabase.functions.invoke('admin-update-user-role', {
-        body: { userId, role }
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      // Refresh the user list to show the updated role
-      await refreshUsers();
-      
-      return data;
-    } catch (err) {
-      console.error('Error updating user role:', err);
-      throw err instanceof Error ? err : new Error('Failed to update user role');
-    }
-  }, [refreshUsers]);
+  const updateUserRole = useCallback(
+    async (userId: string, role: "guardian" | "student" | "admin") => {
+      try {
+        const data = await makeAuthenticatedRequest("admin-update-user-role", {
+          method: "POST",
+          body: { userId, role },
+        });
 
-  const updateUserStatus = useCallback(async (
-    userId: string, 
-    status: 'active' | 'suspended' | 'pending' | 'deactivated',
-    reason?: string
-  ) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('admin-update-user-status', {
-        body: { userId, status, reason }
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      // Refresh the user list to show the updated status
-      await refreshUsers();
-      
-      return data;
-    } catch (err) {
-      console.error('Error updating user status:', err);
-      throw err instanceof Error ? err : new Error('Failed to update user status');
-    }
-  }, [refreshUsers]);
+        // Refresh the user list to show the updated role
+        await refreshUsers();
 
-  const getUserActivity = useCallback(async (userId: string, options?: {
-    activityType?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: number;
-    pageSize?: number;
-  }) => {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      queryParams.append('userId', userId);
-      if (options?.activityType) queryParams.append('activityType', options.activityType);
-      if (options?.startDate) queryParams.append('startDate', options.startDate);
-      if (options?.endDate) queryParams.append('endDate', options.endDate);
-      queryParams.append('page', options?.page?.toString() || '1');
-      queryParams.append('pageSize', options?.pageSize?.toString() || '20');
-      
-      const { data, error } = await supabase.functions.invoke('admin-get-user-activity', {
-        body: { queryParams: Object.fromEntries(queryParams.entries()) }
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      return {
-        activities: data.activities || [],
-        activityTypes: data.activityTypes || [],
-        pagination: data.pagination || {
-          page: 1,
-          pageSize: 20,
-          totalCount: 0,
-          totalPages: 0
-        }
-      };
-    } catch (err) {
-      console.error('Error fetching user activity:', err);
-      throw err instanceof Error ? err : new Error('Failed to fetch user activity');
-    }
-  }, []);
+        return data;
+      } catch (err) {
+        console.error("Error updating user role:", err);
+        throw err instanceof Error
+          ? err
+          : new Error("Failed to update user role");
+      }
+    },
+    [refreshUsers],
+  );
+
+  const updateUserStatus = useCallback(
+    async (
+      userId: string,
+      status: "active" | "suspended" | "pending" | "deactivated",
+      reason?: string,
+    ) => {
+      try {
+        const data = await makeAuthenticatedRequest(
+          "admin-update-user-status",
+          {
+            method: "POST",
+            body: { userId, status, reason },
+          },
+        );
+
+        // Refresh the user list to show the updated status
+        await refreshUsers();
+
+        return data;
+      } catch (err) {
+        console.error("Error updating user status:", err);
+        throw err instanceof Error
+          ? err
+          : new Error("Failed to update user status");
+      }
+    },
+    [refreshUsers],
+  );
+
+  const getUserActivity = useCallback(
+    async (
+      userId: string,
+      options?: {
+        activityType?: string;
+        startDate?: string;
+        endDate?: string;
+        page?: number;
+        pageSize?: number;
+      },
+    ) => {
+      try {
+        const params: Record<string, string> = {
+          userId,
+        };
+
+        if (options?.activityType) params.activityType = options.activityType;
+        if (options?.startDate) params.startDate = options.startDate;
+        if (options?.endDate) params.endDate = options.endDate;
+        params.page = options?.page?.toString() || "1";
+        params.pageSize = options?.pageSize?.toString() || "20";
+
+        const data = await makeAuthenticatedRequest("admin-get-user-activity", {
+          method: "GET",
+          params,
+        });
+
+        return {
+          activities: data.activities || [],
+          activityTypes: data.activityTypes || [],
+          pagination: data.pagination || {
+            page: 1,
+            pageSize: 20,
+            totalCount: 0,
+            totalPages: 0,
+          },
+        };
+      } catch (err) {
+        console.error("Error fetching user activity:", err);
+        throw err instanceof Error
+          ? err
+          : new Error("Failed to fetch user activity");
+      }
+    },
+    [],
+  );
 
   return {
     users,
@@ -201,15 +228,15 @@ export function useUserManagement(): UseUserManagementResult {
     sorting,
     setFilters,
     setPagination: (paginationUpdate: Partial<UserManagementPagination>) => {
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
-        ...paginationUpdate
+        ...paginationUpdate,
       }));
     },
     setSorting,
     refreshUsers,
     updateUserRole,
     updateUserStatus,
-    getUserActivity
+    getUserActivity,
   };
 }
